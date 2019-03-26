@@ -1,0 +1,70 @@
+#pragma config(Motor,  port2,  rightMotor,  tmotorServoContinuousRotation, openLoop, reversed)
+#pragma config(Motor,  port3,  leftMotor,   tmotorServoContinuousRotation, openLoop)
+#pragma config(Motor,  port6,  armMotor,    tmotorServoContinuousRotation, openLoop)
+#pragma config(Motor,  port5,  clawMotor,   tmotorServoContinuousRotation, openLoop)
+
+int power = 80;
+
+void stopM()
+{
+	motor[rightMotor] = 0;
+	motor[leftMotor]  = 0;
+}
+
+task display()
+{
+	bLCDBacklight = true;
+	string mainBattery, backupBattery;
+
+	while(true)
+	{
+		clearLCDLine(0);
+		clearLCDLine(1);
+
+		displayLCDString(0, 0, "Primary: ");
+		sprintf(mainBattery, "%1.2f%c", nImmediateBatteryLevel/1000.0,'V');
+		displayNextLCDString(mainBattery);
+
+		displayLCDString(1, 0, "Backup: ");
+		sprintf(backupBattery, "%1.2f%c", BackupBatteryLevel/1000.0, 'V');
+		displayNextLCDString(backupBattery);
+
+		wait1Msec(100);
+	}
+}
+
+task rotate()
+{
+	while (true)
+	{
+		if (vexRT(Btn5U))
+		{
+			motor[rightMotor] = power;
+			motor[leftMotor] = -power;
+		}
+		if (vexRT(Btn6U))
+		{
+			motor[rightMotor] = -power;
+			motor[leftMotor] = power;
+		}
+	}
+}
+
+task main()
+{
+	startTask(display);
+	startTask(rotate);
+
+	while (true)
+	{
+		motor[rightMotor] = vexRT(Ch3);
+		motor[leftMotor] = vexRT(Ch3);
+
+		motor[armMotor] = vexRT(Ch2);
+		motor[clawMotor] = vexRT(Ch1);
+
+		if(vexRT(Btn8R))
+			break;
+	}
+	stopM();
+}
