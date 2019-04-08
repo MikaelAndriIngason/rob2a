@@ -1,0 +1,105 @@
+#pragma config(Sensor, in8,    lightSensor,    sensorReflection)
+#pragma config(Sensor, dgtl7,  sonarSensor,    sensorSONAR_inch)
+#pragma config(Sensor, dgtl1,  rightEncoder,   sensorQuadEncoder)
+#pragma config(Sensor, dgtl3,  leftEncoder,    sensorQuadEncoder)
+#pragma config(Motor,  port2,  rightMotor,  tmotorServoContinuousRotation, openLoop, reversed)
+#pragma config(Motor,  port3,  leftMotor,   tmotorServoContinuousRotation, openLoop)
+#pragma config(Motor,  port6,  armMotor,    tmotorServoContinuousRotation, openLoop)
+#pragma config(Motor,  port5,  clawMotor,   tmotorServoContinuousRotation, openLoop)
+
+const int FULL_POWER = 60;
+const int LOW_POWER = 40;
+const int BASE_ROTATIONS = 450;
+
+int counter = 1;
+bool backing = false;
+
+void rotate()
+{
+	motor[rightMotor] = FULL_POWER;
+	motor[leftMotor] = -FULL_POWER;
+}
+
+void straight(int dir)
+{
+	SensorValue[rightEncoder] = 0;
+	SensorValue[leftEncoder]  = 0;
+
+	while(abs(SensorValue[leftEncoder]) < BASE_ROTATIONS * counter)
+	{
+		if(abs(SensorValue[rightEncoder]) == abs(SensorValue[leftEncoder]))
+		{
+			motor[rightMotor] = FULL_POWER * dir;
+			motor[leftMotor]  = FULL_POWER * dir;
+		}
+		else if(abs(SensorValue[rightEncoder]) > abs(SensorValue[leftEncoder]))
+		{
+			motor[rightMotor] = LOW_POWER * dir;
+			motor[leftMotor]  = FULL_POWER * dir;
+		}
+		else
+		{
+			motor[rightMotor] = FULL_POWER * dir;
+			motor[leftMotor]  = LOW_POWER * dir;
+		}
+	}
+}
+
+void backAndRotate()
+{
+	backing = true;
+  straight(-1);
+	wait1Msec(100);
+	rotate();
+	wait1Msec(500);
+	backing = false;
+}
+
+void stopM()
+{
+	motor[rightMotor] = 0;
+	motor[leftMotor]  = 0;
+}
+
+task display()
+{
+	bLCDBacklight = true;
+	string mainBattery, backupBattery;
+
+	while(true)
+	{
+		clearLCDLine(0);
+		clearLCDLine(1);
+
+		displayLCDString(0, 0, "Primary: ");
+		sprintf(mainBattery, "%1.2f%c", nImmediateBatteryLevel/1000.0,'V');
+		displayNextLCDString(mainBattery);
+
+		displayLCDString(1, 0, "Backup: ");
+		sprintf(backupBattery, "%1.2f%c", BackupBatteryLevel/1000.0, 'V');
+		displayNextLCDString(backupBattery);
+
+		wait1Msec(100);
+	}
+}
+
+task main()
+{
+	startTask(display);
+
+	while (true)
+	{
+		if (SensorValue(lightSensor) < 200)
+		{
+			if(SensorValue(sonarSensor) > 12  || SensorValue(sonarSensor) == -1 && !backing)
+				straight(1);
+			else
+				backAndRotate();
+			if(vexRT(Btn8R))
+				break;
+		}
+		else
+			stopM();
+	}
+	stopM();
+}
