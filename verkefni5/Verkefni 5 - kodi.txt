@@ -1,0 +1,34 @@
+#pragma config(Sensor, in1,    lineFollowerRIGHT,   sensorLineFollower)
+#pragma config(Sensor, in2,    lineFollowerCENTER,  sensorLineFollower)
+#pragma config(Sensor, in3,    lineFollowerLEFT,    sensorLineFollower)
+#pragma config(Motor,  port2,           rightMotor,    tmotorNormal, openLoop, reversed)
+#pragma config(Motor,  port3,           leftMotor,     tmotorNormal, openLoop)
+
+task main()
+{
+  int threshold = 2940;
+  int speed = 80;
+  
+  while(true)
+  {
+    
+    // RIGHT sensor sees light:
+    if(SensorValue(lineFollowerRIGHT) < threshold)
+    {
+      motor[leftMotor]  = speed;
+      motor[rightMotor] = speed / 2;
+    }
+    // CENTER sensor sees light:
+    if(SensorValue(lineFollowerCENTER) < threshold)
+    {
+      motor[leftMotor]  = speed;
+      motor[rightMotor] = speed;
+    }
+    // LEFT sensor sees light:
+    if(SensorValue(lineFollowerLEFT) < threshold)
+    {
+      motor[leftMotor]  = speed / 2;
+      motor[rightMotor] = speed;
+    }
+  }
+}
